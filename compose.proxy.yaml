@@ -1,0 +1,13 @@
+# Optional: use only in managed environments with CODEX_PROXY_CERT configured.
+services:
+  app:
+    build:
+      secrets:
+        - proxy_ca
+  migrate:
+    build:
+      secrets:
+        - proxy_ca
+secrets:
+  proxy_ca:
+    file: ${CODEX_PROXY_CERT:?Set CODEX_PROXY_CERT to the proxy CA certificate path}

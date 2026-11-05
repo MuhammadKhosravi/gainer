@@ -1,0 +1,57 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: gainer
+      POSTGRES_USER: gainer
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - gainer_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gainer -d gainer"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  migrate:
+    image: gainer-migrate:local
+    build:
+      context: .
+      target: migrate
+    environment:
+      DATABASE_URL: postgresql://gainer:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/gainer
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+  app:
+    image: gainer-app:local
+    build:
+      context: .
+      target: runner
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://gainer:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/gainer
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Set BETTER_AUTH_SECRET in .env}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+    ports:
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      start_period: 20s
+      retries: 5
+volumes:
+  gainer_data:

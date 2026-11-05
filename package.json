@@ -1,0 +1,46 @@
+{
+  "name": "gainer",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --hostname 0.0.0.0",
+    "build": "next build",
+    "start": "node scripts/start.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "@fontsource/vazirmatn": "^5.3.0",
+    "@next/env": "^16.4.5",
+    "@radix-ui/react-dialog": "^1.3.1",
+    "better-auth": "^1.7.18",
+    "drizzle-orm": "^0.45.4",
+    "lucide-react": "^1.69.0",
+    "next": "^16.4.5",
+    "pg": "^8.23.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@tailwindcss/postcss": "^4.3.4",
+    "@types/node": "^26.6.6",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "drizzle-kit": "^0.31.11",
+    "prettier": "^3.9.10",
+    "tailwindcss": "^4.3.4",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}
