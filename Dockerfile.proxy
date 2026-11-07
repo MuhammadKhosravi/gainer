@@ -1,0 +1,35 @@
+# syntax=docker/dockerfile:1
+# BuildKit variant for compose.proxy.yaml. Keep stages in sync with Dockerfile.
+FROM docker.arvancloud.ir/node:24-bookworm-slim AS dependencies
+WORKDIR /app
+ENV NPM_CONFIG_REGISTRY=https://mirror.kargadan.ir/repository/npm-group/
+COPY package.json package-lock.json ./
+RUN --mount=type=secret,id=proxy_ca,required=true \
+    NODE_EXTRA_CA_CERTS=/run/secrets/proxy_ca npm ci --strict-ssl=true
+
+FROM dependencies AS migrate
+ENV NODE_ENV=production
+COPY --chown=node:node package.json package-lock.json tsconfig.json ./
+COPY --chown=node:node src/lib ./src/lib
+COPY --chown=node:node scripts ./scripts
+COPY --chown=node:node drizzle ./drizzle
+USER node
+CMD ["npm", "run", "db:migrate"]
+
+FROM dependencies AS build
+COPY . .
+ENV NEXT_TELEMETRY_DISABLED=1
+# Next evaluates the auth module at build time. Use an ephemeral build-only key;
+# Compose supplies the actual secret and public origin when the container starts.
+RUN BETTER_AUTH_SECRET="$(node -e "process.stdout.write(require('node:crypto').randomBytes(32).toString('hex'))")" \
+    BETTER_AUTH_URL=http://localhost:3000 npm run build
+
+FROM docker.arvancloud.ir/node:24-bookworm-slim AS runner
+WORKDIR /app
+ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 HOSTNAME=0.0.0.0 PORT=3000
+COPY --from=build --chown=node:node /app/.next/standalone ./
+COPY --from=build --chown=node:node /app/.next/static ./.next/static
+COPY --from=build --chown=node:node /app/public ./public
+USER node
+EXPOSE 3000
+CMD ["node", "server.js"]

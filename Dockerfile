@@ -1,10 +1,8 @@
-# syntax=docker/dockerfile:1
 FROM docker.arvancloud.ir/node:24-bookworm-slim AS dependencies
 WORKDIR /app
 ENV NPM_CONFIG_REGISTRY=https://mirror.kargadan.ir/repository/npm-group/
 COPY package.json package-lock.json ./
-RUN --mount=type=secret,id=proxy_ca \
-    if [ -f /run/secrets/proxy_ca ]; then NODE_EXTRA_CA_CERTS=/run/secrets/proxy_ca npm ci --strict-ssl=true; else npm ci --strict-ssl=true; fi
+RUN npm ci --strict-ssl=true
 
 FROM dependencies AS migrate
 ENV NODE_ENV=production

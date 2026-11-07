@@ -40,6 +40,8 @@ docker compose logs -f app
 
 Open http://localhost:3000. Compose starts PostgreSQL, waits for its health check, applies the versioned database migrations, and then starts the app. The app health check verifies its database connection. Both application images use the same multi-stage Dockerfile; migration and runtime containers run as a non-root user. PostgreSQL has no published port by default. The app binds to loopback so it can be placed behind your HTTPS reverse proxy.
 
+The default Dockerfile supports the legacy builder, including Docker Engine 28.2.2 without Buildx. If your server uses the standalone Compose command, run `docker-compose up -d --build` instead. Docker builds use the configured ArvanCloud image mirror and Kargadan npm registry.
+
 To use another host port, change `APP_PORT` and `BETTER_AUTH_URL` together in `.env`. For a public deployment, use your actual HTTPS origin for `BETTER_AUTH_URL`; configure the reverse proxy to forward to the loopback port. The configured origin must match the browser URL for authentication and diary writes.
 
 In this managed cloud environment, add the supplied proxy CA during builds:
@@ -48,7 +50,7 @@ In this managed cloud environment, add the supplied proxy CA during builds:
 docker compose -f compose.yaml -f compose.proxy.yaml up -d --build
 ```
 
-`compose.proxy.yaml` reads `CODEX_PROXY_CERT` and mounts it as a BuildKit secret. Normal machines do not need that override. TLS verification stays enabled and the CA is not copied into image layers.
+`compose.proxy.yaml` selects `Dockerfile.proxy`, reads `CODEX_PROXY_CERT`, and mounts it as a BuildKit secret. This optional override requires BuildKit; normal machines use the default Dockerfile without it. TLS verification stays enabled and the CA is not copied into image layers.
 
 For an update, pull the code and rerun `docker compose up -d --build`. For an explicit migration run use `docker compose run --rm migrate`. Use `docker compose down` to stop services while retaining data. **`docker compose down -v` deletes the database volume**, so use it only for intentionally disposable data. Back up the database before upgrades; schema downgrades are not automatic.
 
@@ -58,7 +60,7 @@ For development with Next.js outside Docker, use the database-only command in th
 
 Set `DATABASE_URL`, a unique `BETTER_AUTH_SECRET`, and an HTTPS `BETTER_AUTH_URL`. Apply migrations before starting the new release. Terminate TLS at your reverse proxy; keep PostgreSQL off the public Internet. Run `npm run build` followed by `npm start`, or build the provided Dockerfile. Back up PostgreSQL regularly and test restoration. Never use the example database password in production.
 
-For Docker builds behind the managed environment's HTTPS proxy, pass `--secret id=proxy_ca,src="$CODEX_PROXY_CERT"`; the Dockerfile mounts the certificate only during dependency installation. For ordinary builds without a proxy, the optional mount is unused. Build the `migrate` target to run migrations as a separate release job; build the default `runner` target for the application. Migrations are not run automatically on every server start.
+For Docker builds behind the managed environment's HTTPS proxy, use BuildKit with `-f Dockerfile.proxy --secret id=proxy_ca,src="$CODEX_PROXY_CERT"`; this variant mounts the certificate only during dependency installation. Ordinary builds use `Dockerfile` and need no secret mounts or BuildKit. Build the `migrate` target to run migrations as a separate release job; build the default `runner` target for the application. Migrations are not run automatically on every server start.
 
 ## Product behavior and limits
 

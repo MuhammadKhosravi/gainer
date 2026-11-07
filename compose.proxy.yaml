@@ -2,10 +2,12 @@
 services:
   app:
     build:
+      dockerfile: Dockerfile.proxy
       secrets:
         - proxy_ca
   migrate:
     build:
+      dockerfile: Dockerfile.proxy
       secrets:
         - proxy_ca
 secrets:
