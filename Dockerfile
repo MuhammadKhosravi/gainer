@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1
-FROM node:24-bookworm-slim AS dependencies
+FROM docker.arvancloud.ir/node:24-bookworm-slim AS dependencies
 WORKDIR /app
+ENV NPM_CONFIG_REGISTRY=https://mirror.kargadan.ir/repository/npm-group/
 COPY package.json package-lock.json ./
 RUN --mount=type=secret,id=proxy_ca \
     if [ -f /run/secrets/proxy_ca ]; then NODE_EXTRA_CA_CERTS=/run/secrets/proxy_ca npm ci --strict-ssl=true; else npm ci --strict-ssl=true; fi
@@ -22,7 +23,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN BETTER_AUTH_SECRET="$(node -e "process.stdout.write(require('node:crypto').randomBytes(32).toString('hex'))")" \
     BETTER_AUTH_URL=http://localhost:3000 npm run build
 
-FROM node:24-bookworm-slim AS runner
+FROM docker.arvancloud.ir/node:24-bookworm-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 HOSTNAME=0.0.0.0 PORT=3000
 COPY --from=build --chown=node:node /app/.next/standalone ./
