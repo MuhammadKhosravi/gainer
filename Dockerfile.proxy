@@ -2,7 +2,7 @@
 # BuildKit variant for compose.proxy.yaml. Keep stages in sync with Dockerfile.
 FROM docker.arvancloud.ir/node:24-bookworm-slim AS dependencies
 WORKDIR /app
-ENV NPM_CONFIG_REGISTRY=https://mirror.kargadan.ir/repository/npm-group/
+ENV NPM_CONFIG_REGISTRY=https://mirror.abrha.net/repository/npm/
 COPY package.json package-lock.json ./
 RUN --mount=type=secret,id=proxy_ca,required=true \
     NODE_EXTRA_CA_CERTS=/run/secrets/proxy_ca npm ci --strict-ssl=true

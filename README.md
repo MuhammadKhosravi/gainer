@@ -40,7 +40,7 @@ docker compose logs -f app
 
 Open http://localhost:3000. Compose starts PostgreSQL, waits for its health check, applies the versioned database migrations, and then starts the app. The app health check verifies its database connection. Both application images use the same multi-stage Dockerfile; migration and runtime containers run as a non-root user. PostgreSQL has no published port by default. The app binds to loopback so it can be placed behind your HTTPS reverse proxy.
 
-The default Dockerfile supports the legacy builder, including Docker Engine 28.2.2 without Buildx. If your server uses the standalone Compose command, run `docker-compose up -d --build` instead. Docker builds use the configured ArvanCloud image mirror and Kargadan npm registry.
+The default Dockerfile supports the legacy builder, including Docker Engine 28.2.2 without Buildx. If your server uses the standalone Compose command, run `docker-compose up -d --build` instead. Docker builds use the configured ArvanCloud image mirror and Abrha npm registry.
 
 To use another host port, change `APP_PORT` and `BETTER_AUTH_URL` together in `.env`. For a public deployment, use your actual HTTPS origin for `BETTER_AUTH_URL`; configure the reverse proxy to forward to the loopback port. The configured origin must match the browser URL for authentication and diary writes.
 

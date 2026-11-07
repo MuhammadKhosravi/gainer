@@ -1,6 +1,6 @@
 FROM docker.arvancloud.ir/node:24-bookworm-slim AS dependencies
 WORKDIR /app
-ENV NPM_CONFIG_REGISTRY=https://mirror.kargadan.ir/repository/npm-group/
+ENV NPM_CONFIG_REGISTRY=https://mirror.abrha.net/repository/npm/
 COPY package.json package-lock.json ./
 RUN npm ci --strict-ssl=true
 
