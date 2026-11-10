@@ -67,6 +67,49 @@ test("authenticated data is isolated, mutations are validated, deletion cascades
       })
     ).status(),
   ).toBe(404);
+  const food = {
+    name: "غذای خصوصی",
+    calories: 120,
+    protein: 4,
+    portionName: "لیوان",
+    portionGrams: 200,
+  };
+  expect(
+    (await a.post("/api/data", { data: { action: "food", data: food } })).ok(),
+  ).toBe(true);
+  const personalFood = (await (await a.get("/api/data")).json()).foods[0];
+  expect(
+    (
+      await b.post("/api/data", {
+        data: {
+          action: "food",
+          data: { ...food, id: personalFood.id, name: "دستکاری" },
+        },
+      })
+    ).status(),
+  ).toBe(404);
+  expect(
+    (
+      await a.post("/api/data", {
+        data: { action: "food", data: { ...food, id: "invalid-id" } },
+      })
+    ).status(),
+  ).toBe(400);
+  expect(
+    (
+      await a.post("/api/data", {
+        data: {
+          action: "food",
+          data: { ...food, id: personalFood.id, calories: 150 },
+        },
+      })
+    ).ok(),
+  ).toBe(true);
+  expect((await (await a.get("/api/data")).json()).foods).toMatchObject([
+    { ...food, id: personalFood.id, calories: 150 },
+  ]);
+  expect((await (await b.get("/api/data")).json()).foods).toHaveLength(0);
+
   await b.post("/api/data", { data: { action: "deleteEntry", data: { id } } });
   expect((await (await a.get("/api/data")).json()).entries).toHaveLength(1);
   expect(

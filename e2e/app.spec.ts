@@ -110,6 +110,59 @@ test("Persian diary, portions, persistence, personal foods, saved meals, weight 
   expect(download.suggestedFilename()).toContain("javaneh");
   await deleteAccount(page);
 });
+test("editing a personal food changes future logs but not diary history", async ({
+  page,
+}) => {
+  await signup(page, "نیلوفر");
+  await page.getByRole("button", { name: "ثبت غذا", exact: true }).click();
+  await page
+    .getByRole("button", { name: "غذای دلخواه من / ورود از برچسب" })
+    .click();
+  await page.getByLabel("نام غذا", { exact: true }).fill("ماست خانگی");
+  await page.getByLabel("کالری در ۱۰۰ گرم").fill("۱۲۰");
+  await page.getByLabel("پروتئین در ۱۰۰ گرم").fill("۴");
+  await page.getByLabel("نام واحد").fill("کاسه");
+  await page.getByLabel("وزن هر واحد").fill("۲۰۰");
+  await page.getByRole("button", { name: "ذخیرهٔ غذای شخصی" }).click();
+  await page.getByRole("button", { name: /ماست خانگی.*کالری/ }).click();
+  await page.getByRole("button", { name: "افزودن به دفتر غذا" }).click();
+  await expect(
+    page.locator(".entry-row").filter({ hasText: "ماست خانگی" }),
+  ).toContainText("۲۴۰");
+
+  await page.getByRole("button", { name: "ثبت غذا", exact: true }).click();
+  await page.getByRole("button", { name: "غذاهای من" }).click();
+  await page
+    .getByRole("button", { name: "ویرایش غذای شخصی ماست خانگی" })
+    .click();
+  await expect(page.getByLabel("نام غذا", { exact: true })).toHaveValue(
+    "ماست خانگی",
+  );
+  await expect(page.getByLabel("وزن هر واحد")).toHaveValue("200");
+  await page.getByLabel("نام غذا", { exact: true }).fill("ماست پروتئینی");
+  await page.getByLabel("کالری در ۱۰۰ گرم").fill("۱۵۰");
+  await page
+    .getByRole("button", { name: "ذخیرهٔ تغییرات غذای شخصی" })
+    .click();
+  await page.getByRole("button", { name: /ماست پروتئینی.*کالری/ }).click();
+  await page.getByRole("button", { name: "افزودن به دفتر غذا" }).click();
+  await expect(
+    page.locator(".entry-row").filter({ hasText: "ماست خانگی" }),
+  ).toContainText("۲۴۰");
+  await expect(
+    page.locator(".entry-row").filter({ hasText: "ماست پروتئینی" }),
+  ).toContainText("۳۰۰");
+
+  await page.reload();
+  await expect(
+    page.locator(".entry-row").filter({ hasText: "ماست خانگی" }),
+  ).toContainText("۲۴۰");
+  await expect(
+    page.locator(".entry-row").filter({ hasText: "ماست پروتئینی" }),
+  ).toContainText("۳۰۰");
+  await deleteAccount(page);
+});
+
 test("mobile RTL layout and user data isolation", async ({ page, browser }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await signup(page, "رضا");

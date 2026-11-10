@@ -169,10 +169,30 @@ export async function POST(req: Request) {
           ),
         );
     } else if (action === "food") {
-      const f = foodSchema.parse(data);
-      await db
-        .insert(s.customFoods)
-        .values({ id: crypto.randomUUID(), userId: id, data: f });
+      const { id: foodId, ...f } = foodSchema
+        .extend({ id: idSchema.optional() })
+        .parse(data);
+      if (foodId) {
+        const changed = await db
+          .update(s.customFoods)
+          .set({ data: f })
+          .where(
+            and(
+              eq(s.customFoods.id, foodId),
+              eq(s.customFoods.userId, id),
+            ),
+          )
+          .returning({ id: s.customFoods.id });
+        if (!changed.length)
+          return NextResponse.json(
+            { error: "این غذا پیدا نشد." },
+            { status: 404 },
+          );
+      } else {
+        await db
+          .insert(s.customFoods)
+          .values({ id: crypto.randomUUID(), userId: id, data: f });
+      }
     } else if (action === "favorite") {
       const f = z
         .object({ foodId: z.string().min(1).max(100), enabled: z.boolean() })

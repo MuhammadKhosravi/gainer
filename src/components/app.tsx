@@ -1590,8 +1590,9 @@ function FoodDialog({
   onFavorite: (id: string, enabled: boolean) => Promise<boolean>;
 }) {
   const [search, setSearch] = useState(""),
-    [filter, setFilter] = useState<"all" | "favorites" | "recent">("all"),
+    [filter, setFilter] = useState<"all" | "favorites" | "recent" | "personal">("all"),
     [manual, setManual] = useState(false),
+    [customFoodEditing, setCustomFoodEditing] = useState<Food | null>(null),
     [selected, setSelected] = useState<Food | null>(
       editing?.id
         ? {
@@ -1625,7 +1626,8 @@ function FoodDialog({
       normalize(f.name).includes(normalize(search)) &&
       (filter === "all" ||
         (filter === "favorites" && favorites.includes(f.id)) ||
-        (filter === "recent" && ids.has(f.id))),
+        (filter === "recent" && ids.has(f.id)) ||
+        (filter === "personal" && f.custom === true)),
   );
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -1649,7 +1651,13 @@ function FoodDialog({
   }
   return (
     <Modal
-      title={editing?.id ? "ویرایش غذا" : "یک قدم خوشمزه به جلو"}
+      title={
+        editing?.id
+          ? "ویرایش غذا"
+          : customFoodEditing
+            ? "ویرایش غذای شخصی"
+            : "یک قدم خوشمزه به جلو"
+      }
       description="غذایت را پیدا کن، مقدارش را بگو و به دفترت اضافه کن."
       close={close}
     >
@@ -1671,6 +1679,7 @@ function FoodDialog({
                 ["all", "همهٔ غذاها"],
                 ["favorites", "علاقه‌مندی‌ها"],
                 ["recent", "اخیر"],
+                ["personal", "غذاهای من"],
               ] as const
             ).map(([key, label]) => (
               <button
@@ -1706,6 +1715,20 @@ function FoodDialog({
                     </span>
                     <Plus size={18} />
                   </button>
+                  {f.custom && (
+                    <button
+                      type="button"
+                      className="icon-button"
+                      aria-label={`ویرایش غذای شخصی ${f.name}`}
+                      disabled={busy}
+                      onClick={() => {
+                        setCustomFoodEditing(f);
+                        setManual(true);
+                      }}
+                    >
+                      <Pencil size={17} />
+                    </button>
+                  )}
                   <button
                     className={`icon-button ${favorites.includes(f.id) ? "starred" : ""}`}
                     aria-label={`${favorites.includes(f.id) ? "حذف از" : "افزودن به"} علاقه‌مندی‌ها ${f.name}`}
@@ -1725,7 +1748,13 @@ function FoodDialog({
               </div>
             )}
           </div>
-          <button className="secondary full" onClick={() => setManual(true)}>
+          <button
+            className="secondary full"
+            onClick={() => {
+              setCustomFoodEditing(null);
+              setManual(true);
+            }}
+          >
             <Plus size={17} /> غذای دلخواه من / ورود از برچسب
           </button>
           <p className="fineprint">
@@ -1735,7 +1764,15 @@ function FoodDialog({
         </>
       )}
       {manual && !selected && (
-        <CustomFood busy={busy} back={() => setManual(false)} save={onFood} />
+        <CustomFood
+          busy={busy}
+          initial={customFoodEditing}
+          back={() => {
+            setManual(false);
+            setCustomFoodEditing(null);
+          }}
+          save={onFood}
+        />
       )}
       {selected && (
         <form className="stack" onSubmit={submit}>
@@ -1837,10 +1874,12 @@ function FoodDialog({
 }
 function CustomFood({
   busy,
+  initial,
   back,
   save,
 }: {
   busy: boolean;
+  initial: Food | null;
   back: () => void;
   save: (f: unknown) => Promise<boolean>;
 }) {
@@ -1853,39 +1892,58 @@ function CustomFood({
       setError("کالری ۰–۹۰۰، پروتئین ۰–۱۰۰ و وزن واحد ۱–۲۰۰۰ گرم مجاز است.");
       return;
     }
-    if (await save(parsed.data)) back();
+    if (await save(initial ? { ...parsed.data, id: initial.id } : parsed.data))
+      back();
   }
   return (
     <form className="stack" onSubmit={submit}>
       <div className="notice">
-        مقادیر را از برچسب محصول یا منبع قابل‌اعتماد وارد کن. غذا فقط در حساب
-        خودت ذخیره می‌شود.
+        {initial
+          ? "تغییرات برای ثبت‌های بعدی اعمال می‌شود و مقدار غذاهای قبلاً ثبت‌شده تغییر نمی‌کند."
+          : "مقادیر را از برچسب محصول یا منبع قابل‌اعتماد وارد کن. غذا فقط در حساب خودت ذخیره می‌شود."}
       </div>
       <Field label="نام غذا">
         <input
           name="name"
           required
           maxLength={100}
+          defaultValue={initial?.name ?? ""}
           placeholder="مثلاً: شیرموز خانگی"
         />
       </Field>
       <div className="form-grid">
         <Field label="کالری در ۱۰۰ گرم">
-          <input name="calories" inputMode="decimal" required />
+          <input
+            name="calories"
+            inputMode="decimal"
+            defaultValue={initial?.calories ?? ""}
+            required
+          />
         </Field>
         <Field label="پروتئین در ۱۰۰ گرم">
-          <input name="protein" inputMode="decimal" required />
+          <input
+            name="protein"
+            inputMode="decimal"
+            defaultValue={initial?.protein ?? ""}
+            required
+          />
         </Field>
         <Field label="نام واحد">
           <input
             name="portionName"
             required
             maxLength={50}
+            defaultValue={initial?.portionName ?? ""}
             placeholder="مثلاً لیوان"
           />
         </Field>
         <Field label="وزن هر واحد (گرم)">
-          <input name="portionGrams" inputMode="decimal" required />
+          <input
+            name="portionGrams"
+            inputMode="decimal"
+            defaultValue={initial?.portionGrams ?? ""}
+            required
+          />
         </Field>
       </div>
       {error && (
@@ -1894,7 +1952,7 @@ function CustomFood({
         </p>
       )}
       <button className="primary" disabled={busy}>
-        ذخیرهٔ غذای شخصی
+        {initial ? "ذخیرهٔ تغییرات غذای شخصی" : "ذخیرهٔ غذای شخصی"}
       </button>
       <button type="button" className="text-button" onClick={back}>
         بازگشت به جستجو
